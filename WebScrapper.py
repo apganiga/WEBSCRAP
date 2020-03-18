@@ -12,17 +12,17 @@ with open('G:\WEBSCRAP\CompanyList.txt') as CompLists:
 
 df = pd.DataFrame(columns = ['symbol', 'name', 'price', 'changesPercentage', 'change', 'dayLow', 'dayHigh', 'yearHigh', 'yearLow', 'marketCap', 'priceAvg50', 'priceAvg200', 'volume' , 'avgVolume', 'exhange', 'open', 'previousClose', 'eps', 'pe', 'earningsAnnouncement', 'sharesOutstanding', 'timestamp'])
 
-for i in range(1,11):
-    for counter, company in enumerate(companies[:i*50]):
+for i in range(1,51):
+    for counter, company in enumerate(companies[:i*10]):
         company = company.strip()
         url =  company_info_url + company
         price = requests.get(url)
         priceinfo = price.text
-        print("({}:{})".format(counter,company))
+        # print("({}:{})".format(counter,company))
         datadict = json.loads(priceinfo)
         datadict = datadict[0]
         df = df.append(datadict, ignore_index=True )
 
     df = df.drop(['earningsAnnouncement', 'timestamp'], axis=1)
     df1 = df[ df['price'] <= df['yearHigh']*.6 ]
-    print(df1)
+    print(df1['symbol', 'name', 'price','yearHigh', 'marketCap', 'exhange' ])
