@@ -24,5 +24,6 @@ for i in range(1,51):
         df = df.append(datadict, ignore_index=True )
 
     df = df.drop(['earningsAnnouncement', 'timestamp'], axis=1)
-    df1 = df[ df['price'] <= df['yearHigh']*.6 ]
-    print(df1['symbol', 'name', 'price','yearHigh', 'marketCap', 'exhange' ])
+    print(df[['symbol', 'name', 'price', 'changesPercentage','dayHigh', 'yearHigh']])
+    df1 = df[ ( df['price'] <= df['yearHigh']*.6 ) and ( df['changesPercentage'] > -5.0 ) and ( df['price']< 50 ) ]
+    print(df1[['symbol', 'name', 'price', 'changesPercentage','dayHigh', 'yearHigh']])
