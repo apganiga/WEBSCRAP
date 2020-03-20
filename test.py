@@ -58,6 +58,7 @@ if __name__ == '__main__' :
     main_df['marketCap'] = (main_df['marketCap']/1000000000).round().astype(str) + 'B'
 
     main_df = main_df.sort_values(['changesPercentage', 'marketCap'], ascending=[False, True])
-    print(main_df[['symbol', 'name', 'price', 'changesPercentage','dayHigh', 'yearHigh', 'priceAvg50', 'priceAvg200', 'marketCap']])
-
+    # print(main_df[['symbol', 'name', 'price', 'changesPercentage','dayHigh', 'yearHigh', 'priceAvg50', 'priceAvg200', 'marketCap']])
+    shortListedCompanies = main_df['symbol'].tolist()
+    print(shortListedCompanies)
 
