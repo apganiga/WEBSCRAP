@@ -31,17 +31,18 @@ for i in range(51):
     url =  company_info_url + companyList
     prices = requests.get(url)
     prices = json.loads(prices.text)
-
+    df = df[0:0]
     for price in prices :
         df = df.append(price, ignore_index=True )
         df = df.drop(['earningsAnnouncement', 'timestamp'], axis=1)
     try:
         df = df[ ( df['price'] <= df['yearHigh']*.4 )]
-        df = df[ ( df['price']< 50 ) & ( (df['priceAvg50']/df['priceAvg200']).abs().round() == 1 ) ]
+        # df = df[ ( df['price']< 50 ) & ( (df['priceAvg50']/df['priceAvg200']).abs().round() == 1 ) ]
+        df = df[(df['priceAvg50'] / df['priceAvg200']).abs().round() == 1]
         main_df = main_df.append(df)
-    except:  ##Improve the  error handling
+    except Exception as e:  ##Improve the  error handling
         exceptionTickers.append(companyList.split(','))
-        print("Exception while Filtering Shares:", companyList)
+        print("===========> Exception while Filtering Shares:", e)
 
 pd.set_option('display.max_rows', None)
 pd.set_option('display.max_columns', None)
@@ -49,5 +50,5 @@ pd.set_option('display.width', None)
 
 main_df = main_df.drop_duplicates() ##  Bad Code
 main_df = main_df.sort_values(['changesPercentage', 'marketCap'], ascending=[False, True])
-main_df['marketCap'] = (main_df['marketCap']/100000000).round().astype(str) + 'B'
+main_df['marketCap'] = (main_df['marketCap']/1000000000).round().astype(str) + 'B'
 print(main_df[['symbol', 'name', 'price', 'changesPercentage','dayHigh', 'yearHigh', 'priceAvg50', 'priceAvg200', 'marketCap']])
