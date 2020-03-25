@@ -43,38 +43,58 @@ def printdf(df,lisToPrint):
 
 def getCompanyProfile(compList):
     profile_url = 'https://financialmodelingprep.com/api/v3/enterprise-value/'
+    companyInfo_url = 'https://financialmodelingprep.com/api/v3/company/profile/'
     profile_url += compList
-    print("=====>>>", profile_url, "length:", len(compList.split(',')))
     profile_details =  requests.get(profile_url )
     profile_details = json.loads(profile_details.text)
+
+    companyInfo_url += compList
+    companyInfo_details = requests.get(companyInfo_url)
+    companyInfo_details = json.loads(companyInfo_details.text)
+
     if len(compList.split(',')) > 1 :
         profiles = profile_details['enterpriseValuesList']
+        companyDetails = companyInfo_details['companyProfiles']
     else:
-
         profiles = [profile_details]
+        companyDetails = [ companyInfo_details ]
 
     temp_df = pd.DataFrame(columns=['symbol', 'TotalDebt', 'CashCashFlow', 'AsOf', 'EnterpriseVal'])
+    company_temp_df = pd.DataFrame(columns=['symbol', 'sector', 'industry'])
     temp_df = temp_df[0:0]
+    company_temp_df = company_temp_df[0:0]
+
     for profile in profiles:
         Symbol = profile['symbol']
         enterpriseValue = profile['enterpriseValues'][0]
-        # print("======   ", Symbol, "  ===================")
-        # print(type(enterpriseValue))
-        # print(enterpriseValue)
-        # print("==============================")
         TotalDebt = enterpriseValue["+ Total Debt"]
         CashCashFlow = enterpriseValue['- Cash & Cash Equivalents']
         AsOf = enterpriseValue['date']
         EnterpriseVal= enterpriseValue['Enterprise Value']
         temp_df = temp_df.append({'symbol': Symbol,
-                                                  'TotalDebt': TotalDebt,
-                                                  'CashCashFlow': CashCashFlow,
-                                                  'AsOf': AsOf,
-                                                  'EnterpriseVal': EnterpriseVal}, ignore_index=True)
+                                  'TotalDebt': TotalDebt,
+                                  'CashCashFlow': CashCashFlow,
+                                  'AsOf': AsOf,
+                                  'EnterpriseVal': EnterpriseVal}, ignore_index=True)
     temp_df['TotalDebt'] = (temp_df['TotalDebt']/1000000000).round(2).astype(str) + 'B'
     temp_df['CashCashFlow'] = (temp_df['CashCashFlow'] / 1000000000).round(2).astype(str) + 'B'
     temp_df['EnterpriseVal'] = (temp_df['EnterpriseVal']/ 1000000000).round(2).astype(str) + 'B'
     # print(temp_df)
+
+    for companyDetail in companyDetails:
+        # print(companyDetail)
+        # print("x x x x x x ")
+        Symbol = companyDetail['symbol']
+        sector = companyDetail['profile'['sector']
+        industry = companyDetail'profile'['industry']
+        company_temp_df = company_temp_df.append({
+            'symbol': Symbol,
+            'sector': sector,
+            'industry': industry}
+        )
+
+    temp_df = temp_df.set_index('symbol').join(company_temp_df.set_idex('symbol'))
+    print(temp_df)
     return temp_df
 
 if __name__ == '__main__' :
@@ -112,4 +132,4 @@ if __name__ == '__main__' :
     main_df = main_df.set_index('symbol').join(enterprise_df.set_index('symbol'))
     # main_df.info(verbose=True)
     # print(main_df.head(3))
-    printdf(main_df, ['name', 'price', 'changesPercentage','dayHigh', 'yearHigh', 'priceAvg50', 'priceAvg200', 'marketCap', 'TotalDebt', 'CashCashFlow', 'EnterpriseVal'])
+    printdf(main_df, ['name', 'sector', 'price', 'changesPercentage','dayHigh', 'yearHigh', 'priceAvg50', 'priceAvg200', 'marketCap', 'TotalDebt', 'CashCashFlow', 'EnterpriseVal'])
