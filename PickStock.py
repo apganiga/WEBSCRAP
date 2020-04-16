@@ -17,12 +17,12 @@ ApiDict = {
         'deepKey': 'financialStatementList',  ##Optional
         'deepKey2': 'financials',
         'deepKey3': 0,
-        'ops': {'Total assets': ['"0B" if pd.isnull(x) else str(round(float(x)/1e9, 2))+"B"'], 'Total debt': ['"0B" if pd.isnull(x) else str(round(float(x)/1e9, 2))+"B"'],
-                'Other Assets': ['"0B" if x == "" else x' ,'"0B" if pd.isnull(x) else str(round(float(x)/1e9, 2))+"B"'], 'Other Liabilities':['"0B" if x == "" else x' , '"0B" if pd.isnull(x) else str(round(float(x)/1e9, 2))+"B"'] }
+        'ops': {'Total assets': ['"1" if x == "" else x', '"0B" if pd.isnull(x) else str(round(float(x)/1e9, 2))+"B"'], 'Total debt': ['"1" if x == "" else x','"0B" if pd.isnull(x) else str(round(float(x)/1e9, 2))+"B"'],
+                'Other Assets': ['"1" if x == "" else x' ,'"0B" if pd.isnull(x) else str(round(float(x)/1e9, 2))+"B"'], 'Other Liabilities':['"1" if x == "" else x' , '"0B" if pd.isnull(x) else str(round(float(x)/1e9, 2))+"B"'] }
     },
     'CompanyQuote': {
         'url': 'https://financialmodelingprep.com/api/v3/quote/',  # mandatory
-        'size': 3,  # mandatory
+        'size': 20,  # mandatory
         'requiredInfo': ['symbol', 'price','changesPercentage', 'change', 'dayHigh', 'yearHigh', 'marketCap', 'priceAvg50', 'priceAvg200'],  # optonal
         'ops': {'changesPercentage': ['str(x)+ "%"'], 'marketCap': ['0 if pd.isnull(x) else x', 'str(int(x)//1e9) + "B"']}
         # Implement this Generic Functionality   #Optional
@@ -36,7 +36,7 @@ ApiDict = {
     }
 }
 
-def scrapWebGiveListOfDict(need, tickers):  # Returns List of Dict
+def scrapeWebGiveListOfDict(need, tickers):  # Returns List of Dict
     if need not in ApiDict :
         raise NameError("{} is Unrecognized Request".format(need))
     noOfTickers = len(tickers.split(','))
@@ -46,13 +46,16 @@ def scrapWebGiveListOfDict(need, tickers):  # Returns List of Dict
         print("Error: While scrapping:", ApiDict[need]['url'] + tickers)
         print("error=", e)
 
-
     if len(data_extracted) == 0 : ## All code below this executes only if data_extracted is not blank
         return
-    elif noOfTickers == 1 and isinstance(type(data_extracted), list) :
-        data_extracted = [ data_extracted ]
-    elif noOfTickers > 1 and 'deepKey' in ApiDict[need] :
-        data_extracted = data_extracted[ApiDict[need]['deepKey']] ## If multiple tickers input, the this API returns dict of dict else it returns only List
+
+    if isinstance(data_extracted, dict):
+        if ApiDict[need]['deepKey'] in data_extracted :
+            data_extracted = data_extracted[ApiDict[need]['deepKey']]## If multiple tickers input, the this API returns dict of dict else it returns only List
+        else:
+            data_extracted = [data_extracted]
+    if len(data_extracted) == 0 : ## All code below this executes only if data_extracted is not blank
+        return
 # To convert to DF, we want is LIST of DICTIONARY, WHere each element of List is a flat dict
 ## But some API Calls will give dic of dic. Hence below code will flatten it
     # import pdb;pdb.set_trace()
@@ -85,10 +88,10 @@ def scrapWebGiveListOfDict(need, tickers):  # Returns List of Dict
                     print("URL:", ApiDict[need]['url'] + tickers)
                     printdf(data_extracted[[col]])
                     continue
-
+    # printdf(data_extracted)
     return data_extracted
 
-def webScrapCaller(info, tickersList):
+def webScrapeCaller(info, tickersList):
     validInfo = ApiDict.keys()
     if info not in validInfo:
         print("{} is not a valid call. It should be one of {}".format(info, validInfo))
@@ -106,7 +109,7 @@ def webScrapCaller(info, tickersList):
        ## Write Logger to Log the execution details during run time
        try:
            print("{}: Scrapping {} for {}... ".format(counter, info, tickers))
-           df = scrapWebGiveListOfDict(info, tickers)
+           df = scrapeWebGiveListOfDict(info, tickers)
        except Exception as e:
            print("Error in webSrapCaller: Scrapping {} for >>>{}<<<<...Continuing with next batch ".format(info, tickers))
            print(ApiDict[info]['url'] + tickers, "Error:", e)
@@ -123,31 +126,37 @@ def printdf(df, listOfCols=[]):
     else:
         print(df)
 
-TickerFile = 'G:\WEBSCRAP\CompanyList1.txt'
-with open(TickerFile) as F_Tickers:
-    tickersMasterList = list(set([i.strip() for i in F_Tickers.readlines()]))
+if __name__ == '__main__' :
+    tickerSymbolFile = 'G:\WEBSCRAP\STOCK_PICK\SnP500Listings.txt'
+    outputFile = 'G:\WEBSCRAP\STOCK_PICK\Outputs\StockDetails.xlsx'
 
-tickersMasterList = tickersMasterList[:21]
-batchSize=10
-for i  in range((len(tickersMasterList)//batchSize)+1) :
-    tickersList = tickersMasterList[i*batchSize:(i*batchSize)+batchSize]
-    print("Finding some GOOD stocks among {} stocks: {}".format(len(tickersList), ','.join(tickersList)))
+    with open(tickerSymbolFile) as F_Tickers:
+        tickersMasterList = list(set([i.strip() for i in F_Tickers.readlines()]))
 
-    financials_df = webScrapCaller('Financials', tickersList)
-    printdf(financials_df)
-    quote_df =webScrapCaller('CompanyQuote', tickersList)
-    printdf(quote_df)
-    recommendation_df = webScrapCaller('CompanyRating', tickersList )
-    printdf(recommendation_df)
-    # final_df = pd.merge(profile_df, quote_df, on = 'symbol', how = 'inner' )
-    # final_df = pd.merge(final_df, recommendation_df , on = 'symbol', how = 'outer', ).fillna('---')
-    # final_df = pd.merge(final_df,financials_df, on = 'symbol', how = 'outer')
-    #
-    # final_df = final_df.sort_values(['sector','recommendation', 'marketCap', 'Total assets', 'Net Debt'], ascending=False)
-    # if i == 0 :
-    #     headerOffOn = True
-    # else:
-    #     headerOffOn = False
-    #
-    # final_df.to_excel('G:\WEBSCRAP\March30_2020.xls', header = headerOffOn, startrow=(i * batchSize) )
-    # printdf(final_df, ['sector', 'industry', 'companyName', 'price', 'changesPercentage', 'dayHigh', 'yearHigh', 'marketCap', 'recommendation', 'Total assets', 'Net Debt', 'Other Assets', 'Other Liabilities'])
+    tickersMasterList = tickersMasterList[:]
+    batchSize=150
+
+    for i  in range((len(tickersMasterList)//batchSize)+1) :
+        tickersList = tickersMasterList[i*batchSize:(i*batchSize)+batchSize]
+        print("Finding some GOOD stocks among {} stocks: {}".format(len(tickersList), ','.join(tickersList)))
+
+        profile_df = webScrapeCaller('CompanyProfile', tickersList)
+        financials_df = webScrapeCaller('Financials', tickersList)
+        quote_df =webScrapeCaller('CompanyQuote', tickersList)
+        recommendation_df = webScrapeCaller('CompanyRating', tickersList )
+        # printdf(recommendation_df)
+        try:
+            final_df = pd.merge(profile_df, quote_df, on = 'symbol', how = 'inner' )
+            final_df = pd.merge(final_df, recommendation_df , on = 'symbol', how = 'outer', ).fillna('---')
+            final_df = pd.merge(final_df,financials_df, on = 'symbol', how = 'outer')
+        except Exception as e:
+            print("ERROR: While combining data for tickers:", tickersList)
+
+
+        final_df = final_df.sort_values(['sector','recommendation', 'marketCap', 'Total assets', 'Total debt'], ascending=False)
+        if os.path.exist(outputFile) :
+            existing_df = pd.read_excel(outputFile)
+            final_df = final_df.append(existing_df)
+
+        final_df.write_excel(outputFile)
+
