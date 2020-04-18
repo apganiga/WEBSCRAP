@@ -1,11 +1,13 @@
 import requests
 import json
 import pandas as pd
+import os
+from datetime import datetime
 
 ApiDict = {
     'CompanyProfile': {
         'url': 'https://financialmodelingprep.com/api/v3/company/profile/',  ## only Mandatory
-        'size': 10,  # mandatory
+        'size': 3,  # mandatory
         'requiredInfo': ['symbol', 'companyName', 'industry', 'sector' ],  # optonal
         'deepKey': 'companyProfiles',  ##Optional
         'deepKey2': 'profile'
@@ -13,7 +15,7 @@ ApiDict = {
     'Financials': {
         'url': 'https://financialmodelingprep.com/api/v3/financials/balance-sheet-statement/',  ## only Mandatory
         'size': 3,  # mandatory
-        'requiredInfo': ['symbol', 'Total assets', 'Total debt', 'Other Assets', 'Other Liabilities'],  # optonal
+        'requiredInfo': ['symbol', 'Total assets', 'Total debt', 'Cash and cash equivalents', 'Other Assets', 'Other Liabilities'],  # optonal
         'deepKey': 'financialStatementList',  ##Optional
         'deepKey2': 'financials',
         'deepKey3': 0,
@@ -128,7 +130,7 @@ def printdf(df, listOfCols=[]):
 
 if __name__ == '__main__' :
     tickerSymbolFile = 'G:\WEBSCRAP\STOCK_PICK\SnP500Listings.txt'
-    outputFile = 'G:\WEBSCRAP\STOCK_PICK\Outputs\StockDetails.xlsx'
+    outputFile = 'G:\WEBSCRAP\STOCK_PICK\Outputs\StockDetails' + datetime.today().strftime('%d_%m_%Y') + '.xlsx'
 
     with open(tickerSymbolFile) as F_Tickers:
         tickersMasterList = list(set([i.strip() for i in F_Tickers.readlines()]))
@@ -154,9 +156,9 @@ if __name__ == '__main__' :
 
 
         final_df = final_df.sort_values(['sector','recommendation', 'marketCap', 'Total assets', 'Total debt'], ascending=False)
-        if os.path.exist(outputFile) :
+        if os.path.exists(outputFile) :
             existing_df = pd.read_excel(outputFile)
             final_df = final_df.append(existing_df)
 
-        final_df.write_excel(outputFile)
+        final_df.to_excel(outputFile)
 
